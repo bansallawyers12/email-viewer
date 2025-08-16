@@ -179,7 +179,7 @@
               <span v-if="email.attachments && email.attachments.length > 0" class="text-xs text-blue-600">
                 <i class="fas fa-paperclip"></i>
               </span>
-              <span class="text-sm text-gray-500">
+              <span class="text-xs text-gray-400">
                 {{ formatDate(email.sent_date) }}
               </span>
             </div>
@@ -203,12 +203,12 @@
           </div>
 
           <!-- Email Preview -->
-          <div class="text-sm text-gray-600 line-clamp-1 mb-1">
+          <div class="text-xs text-gray-600 line-clamp-1 mb-1">
             {{ email.text_content || email.html_content || 'No preview available' }}
           </div>
 
           <!-- Email Metadata -->
-          <div class="flex justify-between items-center text-sm text-gray-500">
+          <div class="flex justify-between items-center text-xs text-gray-400">
             <span>{{ formatFileSize(email.file_size) }}</span>
             <div class="flex items-center space-x-2">
               <span v-if="email.attachments && email.attachments.length > 0">
