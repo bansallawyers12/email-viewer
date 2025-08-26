@@ -8,7 +8,7 @@ A Laravel web application that acts as an email viewer for Outlook .msg files, p
 - **File Upload**: Drag-and-drop or file picker interface for uploading .msg files
 - **Local Storage**: Uploaded files stored in `storage/app/emails` with metadata in database
 - **Email Parsing**: Extract content, attachments, and metadata from .msg files using Python-based parsing
-- **Authentication**: Basic access control for secure file management
+- **User Scoping**: Endpoints scope data per user; when unauthenticated, default user `id=1` is used
 - **Automatic Labeling**: Automatically assigns "Inbox" or "Sent" labels based on sender domain
 
 ### Three-Panel UI
@@ -22,16 +22,22 @@ A Laravel web application that acts as an email viewer for Outlook .msg files, p
 
 ### Advanced Features
 - **Search & Filter**: Find emails by subject, sender, date, or content
-- **Sorting**: Sort emails by date, sender, subject, or size
-- **Attachment Management**: Download individual attachments or all at once
-- **Export Options**: Export emails as PDF with formatting preserved
+- **Sorting**: Sort emails by date, sender, subject, size, or created date
+- **Duplicate Detection**: Prevents duplicates via filename match, size+SHA-256 hash, and metadata match (subject/sender/date)
+- **Attachment Preview & ZIP**: Preview PDFs/images inline and download all attachments as a ZIP per email
+- **Statistics**: Email- and attachment-level statistics endpoints for UI insights
+- **Storage Monitoring**: API for total bytes, item counts, and usage percentage (10GB cap by default)
+- **Progress Tracking**: Upload progress endpoint per email
+- **Bulk Clear**: One-click clear-all for the current user's emails
+- **Export Options**: Export emails as PDF with Dompdf; HTML fallback when PDF lib unavailable
 
 ## Technical Stack
 
 ### Backend
-- **Framework**: Laravel 10+
+- **Framework**: Laravel 12+
 - **Database**: MySQL/PostgreSQL with migrations for email metadata
 - **File Parsing**: Python-based parsing with extract-msg library
+- **PDF Generation**: Dompdf for generating PDF exports
 - **Storage**: Local file system with organized directory structure
 
 ### Frontend
@@ -41,9 +47,11 @@ A Laravel web application that acts as an email viewer for Outlook .msg files, p
 - **State Management**: Pinia for reactive state management
 
 ### Database Schema
-- **emails**: Store email metadata (subject, sender, date, file path, etc.)
-- **attachments**: Store attachment information (filename, size, type, etc.)
-- **users**: Basic authentication system
+- **emails**: Email metadata (subject, sender, dates, paths, sizes, content, status, errors)
+- **attachments**: Attachment metadata (filename, type, size, paths, inline flags, etc.)
+- **labels**: User labels including system labels (Inbox, Sent)
+- **email_label**: Pivot table mapping labels to emails
+- **users**: Optional authentication (routes default to user `id=1` if unauthenticated)
 
 ## File Structure
 ```
@@ -87,7 +95,7 @@ storage/
 ## Installation & Setup
 
 ### Prerequisites
-- PHP 8.1+
+- PHP 8.2+
 - Composer
 - Node.js 16+
 - MySQL/PostgreSQL
@@ -124,11 +132,18 @@ php artisan db:seed
 ```
 
 ### Step 4: Storage Setup
+- Windows (PowerShell):
+```powershell
+php artisan storage:link
+New-Item -ItemType Directory -Force storage/app/emails | Out-Null
+New-Item -ItemType Directory -Force storage/app/attachments | Out-Null
+New-Item -ItemType Directory -Force storage/app/scripts | Out-Null
+```
+
+- Linux/Mac:
 ```bash
 php artisan storage:link
-mkdir -p storage/app/emails
-mkdir -p storage/app/attachments
-mkdir -p storage/app/scripts
+mkdir -p storage/app/emails storage/app/attachments storage/app/scripts
 chmod -R 755 storage/app
 ```
 
@@ -151,6 +166,11 @@ php artisan serve
 npm run dev
 ```
 
+Or run everything concurrently in one command:
+```bash
+composer run dev
+```
+
 Visit `http://localhost:8000` to access the application.
 
 ### Step 7: Run Tests
@@ -169,35 +189,45 @@ php artisan test --coverage
 
 ## API Endpoints
 
-### Email Management
-- `GET /api/emails` - List emails with search/filter
+### Emails
+- `GET /api/emails` - List emails (search, filters, pagination supported via query params)
 - `GET /api/emails/{id}` - Get email details
-- `PUT /api/emails/{id}` - Update email tags
-- `DELETE /api/emails/{id}` - Delete email
-- `GET /api/emails/{id}/statistics` - Get email statistics
-- `GET /api/emails/{id}/export-pdf` - Export email as PDF
+- `PUT /api/emails/{id}` - Update email metadata (e.g., `tags`, `notes`, `is_important`, `is_read`)
+- `DELETE /api/emails/{id}` - Delete an email and its files
+- `DELETE /api/emails/clear-all` - Clear all emails for the current user
+- `GET /api/emails/{id}/statistics` - Get statistics (see controller for details)
+- `GET /api/emails/{id}/export-pdf` - Generate and cache a PDF (returns link endpoints)
+- `GET /api/emails/{id}/download-pdf` - Download the generated PDF
+- `GET /api/emails/{id}/download-html` - Download the generated HTML fallback
+  
+Supported query params on `GET /api/emails` include: `search`, `status`, `date_from`, `date_to`, `date_filter` (today|week|month|year), `sender`, `has_attachments` (true|false), `size_filter` (small|medium|large), `sort_by`, `sort_order`, `per_page`, and `page`.
 
-### Attachment Management
-- `GET /api/attachments/email/{emailId}` - List email attachments
+### Attachments
+- `GET /api/attachments/email/{emailId}` - List attachments for an email
 - `GET /api/attachments/{id}` - Get attachment details
-- `GET /api/attachments/{id}/download` - Download attachment
-- `GET /api/attachments/{id}/preview` - Preview attachment
-- `GET /api/attachments/email/{emailId}/download-all` - Download all attachments as ZIP
-- `GET /api/attachments/email/{emailId}/statistics` - Get attachment statistics
+- `GET /api/attachments/{id}/download` - Download an attachment
+- `GET /api/attachments/{id}/preview` - Inline preview (images and PDFs; otherwise returns JSON with suggestion)
+- `GET /api/attachments/email/{emailId}/download-all` - Download all attachments as a ZIP
+- `GET /api/attachments/email/{emailId}/statistics` - Attachment statistics for an email
 
-### Upload Management
-- `POST /api/upload` - Upload .msg files
-- `GET /api/upload/progress/{emailId}` - Get upload progress
-- `GET /api/upload/storage-usage` - Get storage usage
-- `DELETE /api/upload/{emailId}` - Delete uploaded email
+### Labels
+- `GET /api/labels` - List labels
+- `POST /api/labels` - Create a custom label
+- `PUT /api/labels/{id}` - Update a custom label
+- `DELETE /api/labels/{id}` - Delete a custom label
+- `POST /api/labels/apply` - Apply a label to an email
+- `DELETE /api/labels/remove` - Remove a label from an email
+- `GET /api/labels/{id}/emails` - Get emails by label (paginated)
 
-### Email Management (Enhanced)
-- `GET /api/emails` - List emails with advanced search/filter
-- `GET /api/emails/{id}` - Get email details
-- `PUT /api/emails/{id}` - Update email metadata
-- `DELETE /api/emails/{id}` - Delete email
-- `GET /api/emails/statistics` - Get email statistics
-- `DELETE /api/emails/clear-all` - Clear all emails for user
+### Uploads
+- `POST /api/upload` - Upload one or more `.msg` files
+- `GET /api/upload/progress/{emailId}` - Get processing progress for an uploaded email
+- `GET /api/upload/storage-usage` - Storage usage summary
+- `DELETE /api/upload/{emailId}` - Delete an uploaded email (files + DB)
+
+Notes:
+- Upload validation enforces `.msg` mime, 1B–10MB file size, basic header checks.
+- Duplicate detection runs before parsing to avoid creating duplicate emails.
 
 ## Automatic Email Labeling
 
@@ -223,6 +253,9 @@ php artisan emails:auto-label --user-id=1
 
 # Reprocess emails (includes labeling)
 php artisan emails:reprocess
+
+# Process any existing .msg files already placed under storage/app/emails
+php artisan emails:process-files --user-id=1
 ```
 
 ### Label Management
@@ -238,6 +271,7 @@ php artisan emails:reprocess
 - **Library**: extract-msg for Microsoft Outlook MSG files
 - **Script**: `storage/app/scripts/parse_msg.py` - Custom Python script for parsing
 - **Integration**: PHP service calls Python script via command line
+- **Auto-generation**: If missing, the PHP services will generate `parse_msg.py` and a lightweight `parse_metadata.py` on demand in `storage/app/scripts/`
 - **Features**: Extracts subject, sender, recipients, date, content, and attachments
 
 ### Parsing Strategy
@@ -253,6 +287,8 @@ php artisan emails:reprocess
 - **Command Execution**: Secure command-line interface to Python
 - **Data Processing**: Handles JSON output from Python script
 - **File Management**: Saves attachments and updates database
+  
+Additionally, a lightweight `parse_metadata.py` is auto-generated for quick duplicate checks.
 
 ## Frontend Components
 
@@ -272,7 +308,7 @@ php artisan emails:reprocess
 - Email content display (HTML/text)
 - Attachment list with download/preview
 - Email metadata display
-- Export functionality
+- Export functionality (PDF via Dompdf, HTML fallback)
 
 ## Security Considerations
 
@@ -310,6 +346,11 @@ php artisan emails:reprocess
 - [x] **Vue.js app initialization with Pinia integration**
 - [x] **Python-based .msg file parsing with extract-msg library**
 - [x] **ReprocessEmails command for fixing stuck emails**
+- [x] **PDF export with Dompdf and HTML fallback**
+- [x] **Duplicate detection (filename, size+hash, metadata)**
+- [x] **Attachment ZIP download and inline preview for images/PDFs**
+- [x] **Email and attachment statistics endpoints**
+- [x] **Storage usage summary endpoint**
 
 ### ✅ Completed
 - [x] Frontend styling and responsive design improvements
@@ -321,7 +362,6 @@ php artisan emails:reprocess
 ### 📋 Planned
 - [ ] Search and filtering functionality refinement
 - [ ] Attachment management interface improvements
-- [ ] PDF export implementation
 - [ ] Advanced error handling and validation
 - [ ] Unit and integration testing
 - [ ] Documentation improvements
