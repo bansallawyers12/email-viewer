@@ -29,6 +29,7 @@ class EmailController extends Controller
                 'date_to' => 'nullable|date|after_or_equal:date_from',
                 'date_filter' => 'nullable|string|in:today,week,month,year',
                 'sender' => 'nullable|string|max:255',
+                'label_id' => 'nullable|integer|exists:labels,id',
                 'sort_by' => 'nullable|string|in:sent_date,date,subject,sender_email,file_size,created_at',
                 'sort_order' => 'nullable|string|in:asc,desc',
                 'per_page' => 'nullable|integer|min:1|max:100',
@@ -118,6 +119,14 @@ class EmailController extends Controller
                 $query->where(function ($q) use ($request) {
                     $q->where('sender_email', 'like', '%' . $request->sender . '%')
                       ->orWhere('sender_name', 'like', '%' . $request->sender . '%');
+                });
+            }
+
+            // Label filter
+            if ($request->has('label_id') && !empty($request->label_id)) {
+                $labelId = (int) $request->label_id;
+                $query->whereHas('labels', function ($q) use ($labelId) {
+                    $q->where('labels.id', $labelId);
                 });
             }
             

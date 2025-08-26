@@ -18,8 +18,73 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="font-sans antialiased">
-    <div id="app">
-        <!-- Vue.js application will be mounted here -->
+    <div id="app" class="min-h-screen bg-gray-50">
+        <header class="border-b bg-white">
+            <div class="w-full px-4 py-4 flex items-center justify-between">
+                <h1 class="text-xl font-semibold">{{ config('app.name', 'Email Viewer') }}</h1>
+            </div>
+        </header>
+
+        <div class="w-full h-[calc(100vh-72px)] px-4 py-4">
+            <section class="h-full flex flex-col gap-3">
+                <div class="bg-white border rounded p-3">
+                    <div class="flex items-center gap-4 mb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="text-sm font-medium text-gray-700">Upload:</span>
+                            <form id="upload-form" class="flex items-center gap-2" enctype="multipart/form-data">
+                                <input id="upload-input" type="file" name="files[]" class="text-sm" accept=".msg" />
+                                <button id="upload-btn" type="submit" class="px-3 py-1 bg-blue-600 text-white rounded text-sm">Upload</button>
+                            </form>
+                            <div id="upload-progress" class="hidden text-sm text-gray-600"></div>
+                        </div>
+                        
+                        <form id="search-form" class="flex items-center gap-3">
+                            <div class="flex items-center gap-2">
+                                <label for="search" class="text-xs text-gray-600">Search:</label>
+                                <input id="search" name="search" type="text" class="border rounded px-2 py-1 text-sm w-48" placeholder="Search emails..." />
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <label for="label_id" class="text-xs text-gray-600">Label:</label>
+                                <select id="label_id" name="label_id" class="border rounded px-2 py-1 text-sm">
+                                    <option value="">All labels</option>
+                                </select>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <label for="sort_by" class="text-xs text-gray-600">Sort:</label>
+                                <select id="sort_by" name="sort_by" class="border rounded px-2 py-1 text-sm">
+                                    <option value="sent_date">Date</option>
+                                    <option value="subject">Subject</option>
+                                    <option value="sender_email">Sender</option>
+                                    <option value="file_size">File size</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="px-3 py-1 bg-gray-800 text-white rounded text-sm">Apply</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="flex-1 flex gap-3">
+                <div id="email-list" class="w-[360px] shrink-0 bg-white border rounded flex flex-col min-h-0">
+                    <div class="border-b px-3 py-1.5 text-sm text-gray-600 flex items-center justify-between">
+                        <div>
+                            <span id="total-count">0</span> results
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button id="prev-page" class="px-2 py-1 border rounded text-sm">Prev</button>
+                            <span id="page-info" class="text-xs text-gray-500">1 / 1</span>
+                            <button id="next-page" class="px-2 py-1 border rounded text-sm">Next</button>
+                        </div>
+                    </div>
+                    <ul id="email-items" class="divide-y overflow-auto"></ul>
+                </div>
+
+                <div id="email-detail" class="flex-1 min-w-0 bg-white border rounded p-4 overflow-auto text-sm text-gray-700">
+                    <div class="h-full flex items-center justify-center text-gray-400">
+                        Select an email to view its contents
+                    </div>
+                </div>
+            </section>
+        </div>
     </div>
 </body>
 </html> 
