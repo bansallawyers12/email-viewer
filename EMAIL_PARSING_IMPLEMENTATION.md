@@ -88,7 +88,7 @@ public function parseMsgFile(string $filePath, int $userId): Email
 ```
 
 ### Key Features
-- **Python Bridge**: Auto-generates `storage/app/scripts/parse_msg.py` on first run
+-- **Python Bridge**: Uses `storage/app/scripts/parse_msg_simple.py` (checked into repo) and invokes Python with robust Windows compatibility
 - **UTF-8 Sanitization**: Ensures all data is JSON-safe before database storage
 - **MIME Detection**: Combines `mime_content_type()` with comprehensive extension mapping
 - **Label Assignment**: Automatically applies Inbox/Sent based on sender domain
@@ -119,8 +119,8 @@ private function detectMimeType(string $filePath, string $fallbackType): string
 }
 ```
 
-## 5) Python Script (`storage/app/scripts/parse_msg.py`)
-Auto-generated script using `extract_msg` library:
+## 5) Python Script (`storage/app/scripts/parse_msg_simple.py`)
+Script using `extract_msg` library; called from PHP with Windows-safe paths and logging:
 
 ```python
 def parse_msg_file(file_path):
@@ -143,7 +143,7 @@ def parse_msg_file(file_path):
 
 **Install dependency** (Windows PowerShell):
 ```bash
-pip install extract-msg
+py -m pip install extract-msg
 ```
 
 ## 6) Controllers & API Endpoints
@@ -386,10 +386,10 @@ private function assignPrimaryLabels(Email $email): void
 ### Python Requirements
 ```bash
 # Windows (PowerShell)
-pip install extract-msg
+py -m pip install extract-msg
 
-# The service automatically creates the Python script at:
-# storage/app/scripts/parse_msg.py
+# The service uses the Python script at:
+# storage/app/scripts/parse_msg_simple.py
 ```
 
 ### File Storage Structure
@@ -403,7 +403,7 @@ storage/app/
 │   │       ├── image1.jpg
 │   │       └── spreadsheet.xlsx
 ├── scripts/
-│   └── parse_msg.py
+│   └── parse_msg_simple.py
 └── exports/
     ├── pdf/
     └── html/
@@ -420,8 +420,8 @@ DB_CONNECTION=sqlite
 ## 11) Troubleshooting & Debugging
 
 ### Common Issues
-1. **Python not found**: Ensure `py` command works in PowerShell
-2. **extract-msg not installed**: Run `pip install extract-msg`
+1. **Python not found**: Ensure `py` command works in PowerShell. If you see "Python was not found; run without arguments to install", open Settings → Apps → Advanced app settings → App execution aliases and disable the Store aliases for Python, then install Python from python.org.
+2. **extract-msg not installed**: Run `py -m pip install extract-msg`
 3. **Permission errors**: Check storage directory permissions
 4. **Encoding issues**: Check Laravel logs for sanitization warnings
 
@@ -438,6 +438,21 @@ ls -la storage/app/emails/
 
 # View Laravel logs
 tail -f storage/logs/laravel.log
+```
+
+### Windows Compatibility Notes
+- The service prioritizes the `py` launcher, then falls back to `python3` and `python`.
+- File paths sent to Python are normalized to forward slashes to avoid quoting/escaping issues on Windows.
+- Additional logging has been added:
+  - Logs each attempted Python command
+  - Logs command output when detection fails
+  - Distinguishes between "command not found" and runtime errors
+
+If uploads fail, check `storage/logs/laravel.log` around the time of the upload for entries like:
+```text
+INFO: Trying Python parsing command {command: "py \"...\" \"...\" 2>&1"}
+WARNING: No JSON found in Python output {output: "..."}
+ERROR: Failed to parse .msg file: Unable to parse .msg file with Python
 ```
 
 ### Performance Notes
