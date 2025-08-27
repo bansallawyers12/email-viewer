@@ -88,12 +88,16 @@ class MsgParserService
             }
             
             // Try different Python command variations for Windows compatibility
-            $pythonCommands = ['python3', 'python', 'py'];
+            // Prioritize 'py' for Windows systems
+            $pythonCommands = ['py', 'python3', 'python'];
             $output = null;
             $command = null;
             
             foreach ($pythonCommands as $pythonCmd) {
-                $command = "\"$pythonCmd\" \"$scriptPath\" \"$filePath\" 2>&1";
+                // Normalize file paths for Windows compatibility
+                $normalizedScriptPath = str_replace('\\', '/', $scriptPath);
+                $normalizedFilePath = str_replace('\\', '/', $filePath);
+                $command = "\"$pythonCmd\" \"$normalizedScriptPath\" \"$normalizedFilePath\" 2>&1";
                 
                 Log::info('Trying Python parsing command', [
                     'command' => $command
@@ -101,7 +105,19 @@ class MsgParserService
                 
                 $output = shell_exec($command);
                 
-                if ($output && !str_contains($output, 'command not found') && !str_contains($output, 'is not recognized')) {
+                Log::info('Python command output', [
+                    'command' => $command,
+                    'output' => $output,
+                    'exit_code' => $output ? 'success' : 'no_output'
+                ]);
+                
+                // Check if command executed successfully (not command not found errors)
+                if ($output && 
+                    !str_contains($output, 'command not found') && 
+                    !str_contains($output, 'is not recognized') &&
+                    !str_contains($output, 'Python was not found') &&
+                    !str_contains($output, 'run without arguments to install')) {
+                    Log::info('Python command succeeded', ['command' => $command]);
                     break;
                 }
             }
