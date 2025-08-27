@@ -31,6 +31,7 @@ Route::prefix('api/emails')->group(function () {
     Route::get('/{id}', [EmailController::class, 'show']);
     Route::put('/{id}', [EmailController::class, 'update']);
     Route::delete('/{id}', [EmailController::class, 'destroy']);
+    Route::post('/{id}/reparse', [EmailController::class, 'reparse']);
     Route::get('/{id}/statistics', [EmailController::class, 'statistics']);
     Route::get('/{id}/export-pdf', [EmailController::class, 'exportPdf']);
     Route::get('/{id}/download-pdf', [EmailController::class, 'downloadPdf']);

@@ -32,8 +32,11 @@
                         <div class="flex items-center gap-2">
                             <span class="text-sm font-medium text-gray-700">Upload:</span>
                             <form id="upload-form" class="flex items-center gap-2" enctype="multipart/form-data">
-                                <input id="upload-input" type="file" name="files[]" class="text-sm" accept=".msg" />
-                                <button id="upload-btn" type="submit" class="px-3 py-1 bg-blue-600 text-white rounded text-sm">Upload</button>
+                                <div class="relative">
+                                    <input id="upload-input" type="file" name="files[]" class="text-sm" accept=".msg" multiple />
+                                    <div id="file-count" class="absolute -top-2 -right-2 bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center hidden">0</div>
+                                </div>
+                                <button id="upload-btn" type="submit" class="px-3 py-1 bg-blue-600 text-white rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed">Upload</button>
                             </form>
                             <div id="upload-progress" class="hidden text-sm text-gray-600"></div>
                         </div>
@@ -76,6 +79,9 @@
                         </div>
                     </div>
                     <ul id="email-items" class="divide-y overflow-auto"></ul>
+                    <div id="loading-indicator" class="hidden p-4 text-center text-gray-500">
+                        <i class="fas fa-spinner fa-spin mr-2"></i>Loading emails...
+                    </div>
                 </div>
 
                 <div id="email-detail" class="flex-1 min-w-0 bg-white border rounded p-4 overflow-auto text-sm text-gray-700">

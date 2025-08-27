@@ -687,5 +687,57 @@ class EmailController extends Controller
         // Also clear statistics cache
         Cache::forget("email_stats_{$userId}");
     }
+
+    /**
+     * Manually reparse an email.
+     */
+    public function reparse(int $id): JsonResponse
+    {
+        try {
+            $email = Email::where('user_id', Auth::id() ?? 1)->findOrFail($id);
+            
+            // Check if the original file still exists
+            if (!file_exists($email->file_path)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Original email file not found'
+                ], 404);
+            }
+            
+            // Create parser service and reparse
+            $parser = new \App\Services\MsgParserService();
+            $parsed = $parser->parseWithPython($email->file_path);
+            
+            if ($parsed) {
+                // Update email with new parsed data
+                $parser->updateEmailWithParsedData($email, $parsed);
+                
+                // Reassign primary labels
+                $parser->assignPrimaryLabels($email);
+                
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Email reparsed successfully',
+                    'email' => $email->fresh(['attachments', 'labels'])
+                ]);
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to parse email file'
+                ], 500);
+            }
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to reparse email', [
+                'email_id' => $id,
+                'error' => $e->getMessage()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error reparsing email: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }
 

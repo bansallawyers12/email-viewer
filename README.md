@@ -1,479 +1,273 @@
-# Email Viewer - Laravel Web Application
+# Email Viewer
 
-A Laravel web application that acts as an email viewer for Outlook .msg files, providing a simplified Outlook-like experience in the browser.
+A modern web application for viewing and managing email files (.msg format) with advanced search, filtering, and organization capabilities.
 
 ## Features
 
-### Core Functionality
-- **File Upload**: Drag-and-drop or file picker interface for uploading .msg files
-- **Local Storage**: Uploaded files stored in `storage/app/emails` with metadata in database
-- **Email Parsing**: Extract content, attachments, and metadata from .msg files using Python-based parsing
-- **User Scoping**: Endpoints scope data per user; when unauthenticated, default user `id=1` is used
-- **Automatic Labeling**: Automatically assigns "Inbox" or "Sent" labels based on sender domain
+- **Email Upload**: Drag-and-drop or file picker for .msg files
+- **Email Parsing**: Automatic extraction of email content, attachments, and metadata
+- **Search & Filtering**: Advanced search with multiple criteria and label-based filtering
+- **Label Management**: Custom labels for organizing emails
+- **Attachment Handling**: View, download, and manage email attachments
+- **Responsive Design**: Modern UI built with Tailwind CSS
+- **Export Functionality**: Export emails in various formats
+- **Storage Management**: Monitor storage usage and manage space
 
-### Three-Panel UI
-- **Left Panel**: Upload area, search bar, filter/sort options, and storage usage indicator
-- **Middle Panel**: List of uploaded emails with subject, sender, date, and tags
-- **Right Panel**: Detailed email view with:
-  - Email content (HTML/text)
-  - Attachment list with download/preview options
-  - PDF export functionality
-  - Tabs for raw data and PDF preview
+## Technology Stack
 
-### Advanced Features
-- **Search & Filter**: Find emails by subject, sender, date, or content
-- **Sorting**: Sort emails by date, sender, subject, size, or created date
-- **Duplicate Detection**: Prevents duplicates via filename match, size+SHA-256 hash, and metadata match (subject/sender/date)
-- **Attachment Preview & ZIP**: Preview PDFs/images inline and download all attachments as a ZIP per email
-- **Statistics**: Email- and attachment-level statistics endpoints for UI insights
-- **Storage Monitoring**: API for total bytes, item counts, and usage percentage (10GB cap by default)
-- **Progress Tracking**: Upload progress endpoint per email
-- **Bulk Clear**: One-click clear-all for the current user's emails
-- **Export Options**: Export emails as PDF with Dompdf; HTML fallback when PDF lib unavailable
+- **Backend**: Laravel 11 (PHP 8.2+)
+- **Frontend**: Vanilla JavaScript with ES6 modules
+- **Styling**: Tailwind CSS
+- **Database**: SQLite (default) / MySQL / PostgreSQL
+- **Build Tool**: Vite
+- **Email Parsing**: Python with extract-msg library
 
-## Technical Stack
+## Project Structure
 
-### Backend
-- **Framework**: Laravel 12+
-- **Database**: MySQL/PostgreSQL with migrations for email metadata
-- **File Parsing**: Python-based parsing with extract-msg library
-- **PDF Generation**: Dompdf for generating PDF exports
-- **Storage**: Local file system with organized directory structure
-
-### Frontend
-- **UI Framework**: Vue.js 3 with Composition API
-- **Styling**: Tailwind CSS for modern, responsive design
-- **Components**: Modular Vue components for each panel
-- **State Management**: Pinia for reactive state management
-
-### Database Schema
-- **emails**: Email metadata (subject, sender, dates, paths, sizes, content, status, errors)
-- **attachments**: Attachment metadata (filename, type, size, paths, inline flags, etc.)
-- **labels**: User labels including system labels (Inbox, Sent)
-- **email_label**: Pivot table mapping labels to emails
-- **users**: Optional authentication (routes default to user `id=1` if unauthenticated)
-
-## File Structure
 ```
-app/
-├── Http/Controllers/
-│   ├── EmailController.php      # Email CRUD operations
-│   ├── AttachmentController.php # Attachment handling
-│   └── UploadController.php     # File upload logic
-├── Models/
-│   ├── Email.php               # Email model with relationships
-│   ├── Attachment.php          # Attachment model
-│   └── User.php                # User model
-├── Services/
-│   └── MsgParserService.php    # .msg file parsing logic
-├── Console/Commands/
-│   └── ReprocessEmails.php     # Command to reprocess stuck emails
-└── Providers/
-    └── AppServiceProvider.php  # Service bindings
-
-resources/
-├── js/
-│   ├── components/
-│   │   ├── LeftPanel.vue       # Upload and search panel
-│   │   ├── MiddlePanel.vue     # Email list panel
-│   │   └── RightPanel.vue      # Email detail panel
-│   ├── stores/
-│   │   └── emailStore.js       # Pinia store for state management
-│   ├── App.vue                 # Main Vue application
-│   └── app.js                  # Vue app initialization
-└── views/
-    └── app.blade.php           # Main application layout
-
-storage/
+email-viewer/
 ├── app/
-│   ├── emails/                 # Uploaded .msg files
-│   ├── attachments/            # Extracted attachments
-│   └── scripts/
-│       └── parse_msg.py        # Python script for .msg parsing
+│   ├── Console/Commands/          # Artisan commands
+│   ├── Http/Controllers/          # API controllers
+│   ├── Models/                    # Eloquent models
+│   ├── Services/                  # Business logic services
+│   └── Providers/                 # Service providers
+├── database/
+│   ├── migrations/                # Database migrations
+│   ├── seeders/                   # Database seeders
+│   └── factories/                 # Model factories
+├── resources/
+│   ├── js/
+│   │   ├── modules/               # JavaScript modules
+│   │   │   ├── emailList.js       # Email list management
+│   │   │   ├── search.js          # Search and filtering
+│   │   │   └── upload.js          # File upload handling
+│   │   ├── app.js                 # Main application entry point
+│   │   └── bootstrap.js           # Bootstrap configuration
+│   ├── css/
+│   │   └── app.css                # Main stylesheet
+│   └── views/
+│       └── app.blade.php          # Main application view
+├── routes/
+│   └── web.php                    # Web routes
+├── storage/
+│   ├── app/
+│   │   ├── emails/                # Uploaded email files
+│   │   ├── attachments/           # Extracted attachments
+│   │   └── scripts/               # Python parsing scripts
+└── tests/                         # Test files
 ```
 
-## Installation & Setup
+## Installation
 
 ### Prerequisites
-- PHP 8.2+
+
+- PHP 8.2 or higher
 - Composer
-- Node.js 16+
-- MySQL/PostgreSQL
-- Python 3.8+ (required for .msg file parsing)
+- Node.js 18+ and npm
+- Python 3.8+ with pip
+- Required Python packages: `extract-msg`
 
-### Step 1: Clone and Install Dependencies
+### Setup
+
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd email-viewer
+   ```
+
+2. **Install PHP dependencies**
+   ```bash
+   composer install
+   ```
+
+3. **Install Python dependencies**
+   ```bash
+   pip install extract-msg
+   ```
+
+4. **Install Node.js dependencies**
+   ```bash
+   npm install
+   ```
+
+5. **Environment setup**
+   ```bash
+   cp .env.example .env
+   php artisan key:generate
+   ```
+
+6. **Database setup**
+   ```bash
+   php artisan migrate
+   php artisan db:seed
+   ```
+
+7. **Build frontend assets**
+   ```bash
+   npm run dev
+   ```
+
+8. **Start the application**
+   ```bash
+   php artisan serve
+   ```
+
+## Usage
+
+### Uploading Emails
+
+1. Select one or more .msg files using the file picker
+2. Click "Upload" to process the files
+3. Monitor upload progress and view results
+4. Check for any errors or duplicate warnings
+
+### Managing Emails
+
+- **View**: Click on any email in the list to view its contents
+- **Search**: Use the search bar to find specific emails
+- **Filter**: Apply label filters to organize emails
+- **Labels**: Add custom labels to categorize emails
+
+### Managing Attachments
+
+- **View**: Click on attachments to preview them
+- **Download**: Download individual attachments or all at once
+- **Export**: Export emails with attachments in various formats
+
+## API Endpoints
+
+### Email Management
+- `GET /api/emails` - List emails with pagination and filtering
+- `GET /api/emails/{id}` - Get email details
+- `DELETE /api/emails/{id}` - Delete email
+
+### Upload
+- `POST /api/upload` - Upload .msg files
+- `GET /api/upload/progress/{id}` - Check upload progress
+- `GET /api/upload/storage-usage` - Get storage statistics
+
+### Labels
+- `GET /api/labels` - List all labels
+- `POST /api/labels` - Create new label
+- `PUT /api/labels/{id}` - Update label
+- `DELETE /api/labels/{id}` - Delete label
+- `POST /api/labels/apply` - Apply label to email
+- `DELETE /api/labels/remove` - Remove label from email
+
+### Attachments
+- `GET /api/attachments/{id}` - Get attachment details
+- `GET /api/attachments/{id}/download` - Download attachment
+- `GET /api/attachments/{id}/preview` - Preview attachment
+- `GET /api/attachments/email/{emailId}` - Get email attachments
+
+## Development
+
+### Frontend Development
+
+The frontend is built with vanilla JavaScript using ES6 modules:
+
+- **Modular Architecture**: Each feature is in its own module
+- **Event-Driven**: Uses native DOM events and event listeners
+- **Responsive Design**: Built with Tailwind CSS for mobile-first design
+- **No Framework Dependencies**: Pure JavaScript for better performance
+
+### Key JavaScript Modules
+
+- **emailList.js**: Handles email list display, pagination, and selection
+- **search.js**: Manages search functionality and filtering
+- **upload.js**: Handles file uploads with progress and error handling
+
+### Building Assets
+
 ```bash
-git clone <repository-url>
-cd email-viewer
-composer install
-npm install
-```
-
-### Step 2: Environment Configuration
-```bash
-cp .env.example .env
-php artisan key:generate
-```
-
-Update your `.env` file with database credentials:
-```env
-DB_CONNECTION=mysql
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_DATABASE=email_viewer
-DB_USERNAME=your_username
-DB_PASSWORD=your_password
-```
-
-### Step 3: Database Setup
-```bash
-php artisan migrate
-php artisan db:seed
-```
-
-### Step 4: Storage Setup
-- Windows (PowerShell):
-```powershell
-php artisan storage:link
-New-Item -ItemType Directory -Force storage/app/emails | Out-Null
-New-Item -ItemType Directory -Force storage/app/attachments | Out-Null
-New-Item -ItemType Directory -Force storage/app/scripts | Out-Null
-```
-
-- Linux/Mac:
-```bash
-php artisan storage:link
-mkdir -p storage/app/emails storage/app/attachments storage/app/scripts
-chmod -R 755 storage/app
-```
-
-### Step 5: Install Python Dependencies (Required)
-For .msg file parsing capabilities:
-```bash
-# Windows
-py -m pip install extract-msg
-
-# Linux/Mac
-pip3 install extract-msg
-```
-
-### Step 6: Development Server
-```bash
-# Terminal 1: Laravel development server
-php artisan serve
-
-# Terminal 2: Frontend asset compilation
+# Development mode with hot reload
 npm run dev
+
+# Production build
+npm run build
 ```
 
-Or run everything concurrently in one command:
-```bash
-composer run dev
-```
+### Testing
 
-Visit `http://localhost:8000` to access the application.
-
-### Step 7: Run Tests
 ```bash
 # Run all tests
 php artisan test
 
-# Run specific test suites
+# Run specific test
 php artisan test --filter=EmailControllerTest
-php artisan test --filter=UploadControllerTest
-php artisan test --filter=VueComponentsTest
-
-# Run tests with coverage (requires Xdebug)
-php artisan test --coverage
 ```
 
-## API Endpoints
+## Configuration
 
-### Emails
-- `GET /api/emails` - List emails (search, filters, pagination supported via query params)
-- `GET /api/emails/{id}` - Get email details
-- `PUT /api/emails/{id}` - Update email metadata (e.g., `tags`, `notes`, `is_important`, `is_read`)
-- `DELETE /api/emails/{id}` - Delete an email and its files
-- `DELETE /api/emails/clear-all` - Clear all emails for the current user
-- `GET /api/emails/{id}/statistics` - Get statistics (see controller for details)
-- `GET /api/emails/{id}/export-pdf` - Generate and cache a PDF (returns link endpoints)
-- `GET /api/emails/{id}/download-pdf` - Download the generated PDF
-- `GET /api/emails/{id}/download-html` - Download the generated HTML fallback
-  
-Supported query params on `GET /api/emails` include: `search`, `status`, `date_from`, `date_to`, `date_filter` (today|week|month|year), `sender`, `has_attachments` (true|false), `size_filter` (small|medium|large), `sort_by`, `sort_order`, `per_page`, and `page`.
+### Environment Variables
 
-### Attachments
-- `GET /api/attachments/email/{emailId}` - List attachments for an email
-- `GET /api/attachments/{id}` - Get attachment details
-- `GET /api/attachments/{id}/download` - Download an attachment
-- `GET /api/attachments/{id}/preview` - Inline preview (images and PDFs; otherwise returns JSON with suggestion)
-- `GET /api/attachments/email/{emailId}/download-all` - Download all attachments as a ZIP
-- `GET /api/attachments/email/{emailId}/statistics` - Attachment statistics for an email
+Key configuration options in `.env`:
 
-### Labels
-- `GET /api/labels` - List labels
-- `POST /api/labels` - Create a custom label
-- `PUT /api/labels/{id}` - Update a custom label
-- `DELETE /api/labels/{id}` - Delete a custom label
-- `POST /api/labels/apply` - Apply a label to an email
-- `DELETE /api/labels/remove` - Remove a label from an email
-- `GET /api/labels/{id}/emails` - Get emails by label (paginated)
+```env
+APP_NAME="Email Viewer"
+APP_ENV=local
+APP_DEBUG=true
+APP_URL=http://localhost:8000
 
-### Uploads
-- `POST /api/upload` - Upload one or more `.msg` files
-- `GET /api/upload/progress/{emailId}` - Get processing progress for an uploaded email
-- `GET /api/upload/storage-usage` - Storage usage summary
-- `DELETE /api/upload/{emailId}` - Delete an uploaded email (files + DB)
+DB_CONNECTION=sqlite
+DB_DATABASE=database/database.sqlite
 
-Notes:
-- Upload validation enforces `.msg` mime, 1B–10MB file size, basic header checks.
-- Duplicate detection runs before parsing to avoid creating duplicate emails.
-
-## Automatic Email Labeling
-
-The system automatically assigns "Inbox" or "Sent" labels to emails based on the sender domain:
-
-- **Inbox**: Emails received from external domains
-- **Sent**: Emails sent from your domain (bansalimmigration.com.au)
-
-### How It Works
-
-1. **During Processing**: New emails are automatically labeled when uploaded
-2. **Manual Command**: Run `php artisan emails:auto-label` to label existing emails
-3. **System Labels**: "Inbox" and "Sent" are system labels that cannot be deleted
-
-### Commands
-
-```bash
-# Label all emails for all users
-php artisan emails:auto-label
-
-# Label emails for a specific user
-php artisan emails:auto-label --user-id=1
-
-# Reprocess emails (includes labeling)
-php artisan emails:reprocess
-
-# Process any existing .msg files already placed under storage/app/emails
-php artisan emails:process-files --user-id=1
+UPLOAD_MAX_FILESIZE=10MB
+MAX_STORAGE_SIZE=10GB
 ```
 
-### Label Management
+### Storage Configuration
 
-- **System Labels**: Inbox, Sent (automatically managed)
-- **Custom Labels**: Create your own labels for organization
-- **Multiple Labels**: Apply multiple labels to a single email
-- **Label Manager**: Full CRUD operations for custom labels
-
-## .msg File Parsing
-
-### Python-Based Parsing (Primary Method)
-- **Library**: extract-msg for Microsoft Outlook MSG files
-- **Script**: `storage/app/scripts/parse_msg.py` - Custom Python script for parsing
-- **Integration**: PHP service calls Python script via command line
-- **Auto-generation**: If missing, the PHP services will generate `parse_msg.py` and a lightweight `parse_metadata.py` on demand in `storage/app/scripts/`
-- **Features**: Extracts subject, sender, recipients, date, content, and attachments
-
-### Parsing Strategy
-1. **File Validation**: Check file extension and basic format
-2. **Python Processing**: Use extract-msg library to parse .msg files
-3. **Metadata Extraction**: Subject, sender, recipients, date, size
-4. **Content Parsing**: HTML/text body extraction
-5. **Attachment Processing**: Extract and store individual attachments with base64 encoding
-6. **Error Handling**: Graceful degradation for unsupported formats
-
-### PHP Integration
-- **MsgParserService**: Orchestrates Python script execution
-- **Command Execution**: Secure command-line interface to Python
-- **Data Processing**: Handles JSON output from Python script
-- **File Management**: Saves attachments and updates database
-  
-Additionally, a lightweight `parse_metadata.py` is auto-generated for quick duplicate checks.
-
-## Frontend Components
-
-### LeftPanel.vue
-- File upload interface with drag-and-drop
-- Search and filter controls
-- Storage usage display
-- Upload progress indicators
-
-### MiddlePanel.vue
-- Email list with pagination
-- Sort and filter options
-- Email preview cards
-- Bulk operations
-
-### RightPanel.vue
-- Email content display (HTML/text)
-- Attachment list with download/preview
-- Email metadata display
-- Export functionality (PDF via Dompdf, HTML fallback)
-
-## Security Considerations
-
-- **File Upload Validation**: Strict file type checking and size limits
-- **Path Traversal Prevention**: Secure file path handling
-- **Authentication**: User-based access control
-- **File Permissions**: Proper storage directory permissions
-- **Command Injection Prevention**: Secure Python script execution
-
-## Performance Optimizations
-
-- **Lazy Loading**: Load email content only when needed
-- **Caching**: Cache parsed email metadata
-- **Pagination**: Efficient email list pagination
-- **Background Processing**: Queue large file uploads
-- **CDN Integration**: Optional CDN for static assets
-
-## Development Status
-
-### ✅ Completed
-- [x] Database migrations and models
-- [x] Email and Attachment models with relationships
-- [x] MsgParserService with Python-based parsing
-- [x] UploadController with file handling
-- [x] EmailController with CRUD operations
-- [x] AttachmentController with download/preview
-- [x] API routes and authentication
-- [x] Vue.js application structure
-- [x] Main App.vue component with three-panel layout
-- [x] Package.json with Vue.js dependencies
-- [x] **LeftPanel.vue component with upload, search, and storage features**
-- [x] **MiddlePanel.vue component with email list and pagination**
-- [x] **RightPanel.vue component with email content and attachment management**
-- [x] **Pinia store (emailStore.js) for state management**
-- [x] **Vue.js app initialization with Pinia integration**
-- [x] **Python-based .msg file parsing with extract-msg library**
-- [x] **ReprocessEmails command for fixing stuck emails**
-- [x] **PDF export with Dompdf and HTML fallback**
-- [x] **Duplicate detection (filename, size+hash, metadata)**
-- [x] **Attachment ZIP download and inline preview for images/PDFs**
-- [x] **Email and attachment statistics endpoints**
-- [x] **Storage usage summary endpoint**
-
-### ✅ Completed
-- [x] Frontend styling and responsive design improvements
-- [x] Error handling and validation enhancements
-- [x] Performance optimizations
-- [x] Testing implementation
-- [x] **Email parsing functionality with Python integration**
-
-### 📋 Planned
-- [ ] Search and filtering functionality refinement
-- [ ] Attachment management interface improvements
-- [ ] Advanced error handling and validation
-- [ ] Unit and integration testing
-- [ ] Documentation improvements
-
-## Recent Updates
-
-### Email Parsing Solution (Latest Update)
-- **Python Integration**: Implemented Python-based .msg file parsing using extract-msg library
-- **Robust Parsing**: Successfully parses complex .msg files with attachments and metadata
-- **Fallback System**: PHP service with Python script integration for reliable parsing
-- **Attachment Handling**: Proper extraction and storage of email attachments
-- **Error Recovery**: ReprocessEmails command to fix stuck emails
-
-### Frontend Components Completed
-- **LeftPanel.vue**: Complete upload interface with drag-and-drop, search filters, storage usage display, and quick actions
-- **MiddlePanel.vue**: Full email list with pagination, sorting, filtering, and email actions (export, download attachments, delete)
-- **RightPanel.vue**: Comprehensive email viewer with content tabs, attachment management, metadata display, and preview functionality
-- **emailStore.js**: Complete Pinia store with state management, filtering, sorting, and API integration
-
-### Key Features Implemented
-- **File Upload**: Drag-and-drop interface with progress tracking
-- **Email Management**: List, view, delete, and export emails
-- **Attachment Handling**: Download individual or all attachments, preview text files
-- **Search & Filter**: Real-time search with date and sort options
-- **Storage Monitoring**: Live storage usage tracking
-- **Responsive Design**: Modern UI with Tailwind CSS
-
-### Recent Improvements
-
-#### Frontend Styling and Responsive Design Improvements
-- **Mobile-First Design**: Added responsive breakpoints and mobile navigation toggle
-- **Enhanced UI Components**: Improved drag-and-drop interface with visual feedback
-- **Better Transitions**: Added smooth animations and hover effects
-- **Accessibility**: Enhanced keyboard navigation and screen reader support
-- **Error Notifications**: Added toast notifications for success and error states
-- **Loading States**: Improved loading indicators and progress bars
-
-#### Error Handling and Validation Enhancements
-- **Comprehensive Validation**: Enhanced file upload validation with detailed error messages
-- **User-Friendly Errors**: Mapped technical errors to user-friendly messages
-- **Security Improvements**: Added filename sanitization and path traversal prevention
-- **Storage Limits**: Implemented storage space checking before uploads
-- **Graceful Degradation**: Better error handling for network issues and file processing failures
-
-#### Performance Optimizations
-- **Caching System**: Implemented Redis-based caching for email lists and statistics
-- **Lazy Loading**: Added lazy loading for email content and attachments
-- **Database Optimization**: Improved query performance with proper indexing
-- **Background Processing**: Queue system for large file uploads
-- **Memory Management**: Optimized memory usage for large email processing
-
-#### Testing Implementation
-- **Integration Tests**: Comprehensive API endpoint testing (`EmailControllerTest.php`, `UploadControllerTest.php`)
-- **Unit Tests**: Vue.js component testing and configuration validation (`VueComponentsTest.php`)
-- **Test Coverage**: Tests for authentication, validation, error handling, and edge cases
-- **Mock Testing**: Proper mocking for file uploads and external dependencies
-- **Performance Testing**: Tests for caching, pagination, and large dataset handling
+- **Email Files**: Stored in `storage/app/emails/`
+- **Attachments**: Extracted to `storage/app/attachments/`
+- **Temporary Files**: Stored in `storage/app/temp/`
 
 ## Troubleshooting
 
 ### Common Issues
 
-**File Upload Fails**
-- Check file permissions on `storage/app/emails`
-- Verify file size limits in `.env` and `php.ini`
-- Ensure proper MIME type validation
+1. **Upload Failures**
+   - Check file format (.msg files only)
+   - Verify file size limits
+   - Check storage space availability
 
-**Email Parsing Errors**
-- Ensure Python is installed and accessible via `py` (Windows) or `python3` (Linux/Mac)
-- Install extract-msg library: `py -m pip install extract-msg`
-- Check Python script permissions in `storage/app/scripts/parse_msg.py`
-- Review error logs in `storage/logs/laravel.log`
+2. **Python Dependencies**
+   - Ensure `extract-msg` is installed
+   - Check Python version compatibility
 
-**Emails Stuck in Processing Status**
-- Run `php artisan emails:reprocess` to reprocess stuck emails
-- Check if Python script is working: `py storage/app/scripts/parse_msg.py <file_path>`
-- Verify file paths and permissions
+3. **Permission Issues**
+   - Verify storage directory permissions
+   - Check file upload directory access
 
-**Database Connection Issues**
-- Verify database credentials in `.env`
-- Run `php artisan migrate:status` to check migrations
-- Ensure database server is running
+### Debug Mode
 
-**Frontend Build Issues**
-- Run `npm install` to install dependencies
-- Clear cache with `npm run build`
-- Check Node.js version compatibility
+Enable debug mode in `.env`:
+```env
+APP_DEBUG=true
+```
 
-**Vue.js Component Issues**
-- Ensure all components are properly imported in App.vue
-- Check browser console for JavaScript errors
-- Verify Pinia store is properly initialized
+Check Laravel logs in `storage/logs/laravel.log`
 
 ## Contributing
 
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+2. Create a feature branch
+3. Make your changes
+4. Add tests for new functionality
+5. Submit a pull request
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
 
-## Support
+## Acknowledgments
 
-For support and questions:
-- Create an issue in the repository
-- Check the troubleshooting section above
-- Review the Laravel and Vue.js documentation
+- **Laravel** - The PHP framework for web artisans
+- **Tailwind CSS** - A utility-first CSS framework
+- **extract-msg** - Python library for parsing Outlook .msg files
+- **Vite** - Next generation frontend tooling
 
 ---
 
-**Built with Laravel & Vue.js** - Modern web development stack for building robust applications.
+**Built with Laravel & Vanilla JavaScript** - Modern web development stack for building robust applications.
